@@ -122,6 +122,54 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &283656371
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 283656373}
+  - component: {fileID: 283656372}
+  m_Layer: 0
+  m_Name: MazeVisualizer2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &283656372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 283656371}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e073e4bd762eb349bd237ad7731bf1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floorPrefab: {fileID: 5255650678145728255, guid: c80df5eb3182b6e40a955a6bd44bf407, type: 3}
+  wallVerticalPrefab: {fileID: 2452654728724817717, guid: ff07804d6d395d54398b7ef42e25cca9, type: 3}
+  wallHorizontalPrefab: {fileID: 4740316032756449486, guid: c7846cec37461714989e41a3facbe8f7, type: 3}
+  tileSize: 1
+--- !u!4 &283656373
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 283656371}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &320211464
 GameObject:
   m_ObjectHideFlags: 0
@@ -133,12 +181,12 @@ GameObject:
   - component: {fileID: 320211466}
   - component: {fileID: 320211465}
   m_Layer: 0
-  m_Name: MazeGenerator
+  m_Name: MazeBorderGenerator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &320211465
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -153,7 +201,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   width: 21
   height: 21
-  visualizer: {fileID: 1334122619}
+  floorPrefab: {fileID: 5255650678145728255, guid: c80df5eb3182b6e40a955a6bd44bf407, type: 3}
+  wallVerticalPrefab: {fileID: 2452654728724817717, guid: ff07804d6d395d54398b7ef42e25cca9, type: 3}
+  wallHorizontalPrefab: {fileID: 4740316032756449486, guid: c7846cec37461714989e41a3facbe8f7, type: 3}
+  tileSize: 1
 --- !u!4 &320211466
 Transform:
   m_ObjectHideFlags: 0
@@ -355,6 +406,54 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+--- !u!1 &1088965223
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1088965225}
+  - component: {fileID: 1088965224}
+  m_Layer: 0
+  m_Name: MazeVisualizer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1088965224
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1088965223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50e7d028346893e47983bb11625443c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floorPrefab: {fileID: 5255650678145728255, guid: c80df5eb3182b6e40a955a6bd44bf407, type: 3}
+  wallHorizontalPrefab: {fileID: 4740316032756449486, guid: c7846cec37461714989e41a3facbe8f7, type: 3}
+  wallVerticalPrefab: {fileID: 2452654728724817717, guid: ff07804d6d395d54398b7ef42e25cca9, type: 3}
+  tileSize: 1
+--- !u!4 &1088965225
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1088965223}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1334122616
 GameObject:
   m_ObjectHideFlags: 0
@@ -366,12 +465,12 @@ GameObject:
   - component: {fileID: 1334122618}
   - component: {fileID: 1334122619}
   m_Layer: 0
-  m_Name: MazeVisualizer
+  m_Name: MazePathGenerator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1334122618
 Transform:
   m_ObjectHideFlags: 0
@@ -399,10 +498,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a44685cd80a166e4baf6e92ee89f19f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorPrefab: {fileID: 5255650678145728255, guid: c80df5eb3182b6e40a955a6bd44bf407, type: 3}
-  wallHorizontalPrefab: {fileID: 2452654728724817717, guid: ff07804d6d395d54398b7ef42e25cca9, type: 3}
-  wallVerticalPrefab: {fileID: 4740316032756449486, guid: c7846cec37461714989e41a3facbe8f7, type: 3}
-  tileSize: 1
+  borderGenerator: {fileID: 320211465}
+  visualizer: {fileID: 1088965224}
+--- !u!1 &1683147695
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1683147697}
+  - component: {fileID: 1683147696}
+  m_Layer: 0
+  m_Name: 'MazeGenerator '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1683147696
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1683147695}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf11d0a2fab2b2949b22a1fa6fe3cf99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  width: 21
+  height: 21
+  visualizer: {fileID: 283656372}
+--- !u!4 &1683147697
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1683147695}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -411,3 +555,6 @@ SceneRoots:
   - {fileID: 705507995}
   - {fileID: 320211466}
   - {fileID: 1334122618}
+  - {fileID: 1088965225}
+  - {fileID: 283656373}
+  - {fileID: 1683147697}

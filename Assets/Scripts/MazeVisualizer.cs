@@ -3,8 +3,8 @@
 public class MazeVisualizer : MonoBehaviour
 {
     public GameObject floorPrefab;
-    public GameObject wallVerticalPrefab;
     public GameObject wallHorizontalPrefab;
+    public GameObject wallVerticalPrefab;
     public float tileSize = 1f;
 
     public void Visualize(int[,] mazeGrid)
@@ -16,51 +16,35 @@ public class MazeVisualizer : MonoBehaviour
         {
             for (int y = 0; y < height; y++)
             {
-                // Podea
-                Vector3 floorPos = new Vector3(x * tileSize, 0f, y * tileSize);
-                Instantiate(floorPrefab, floorPos, Quaternion.identity, transform);
+                Vector3 position = new Vector3(x * tileSize, 0f, y * tileSize);
 
-                // Pereți între celule
-                if (x < width - 1 && mazeGrid[x, y] != mazeGrid[x + 1, y])
+                if (mazeGrid[x, y] == 1)
                 {
-                    Vector3 wallVPos = new Vector3((x + 0.5f) * tileSize, -0.25f, y * tileSize);
-                    Instantiate(wallVerticalPrefab, wallVPos, Quaternion.identity, transform);
+                    Instantiate(floorPrefab, position, Quaternion.identity, transform);
                 }
-
-                if (y < height - 1 && mazeGrid[x, y] != mazeGrid[x, y + 1])
+                else
                 {
-                    Vector3 wallHPos = new Vector3(x * tileSize, -0.25f, (y + 0.5f) * tileSize);
-                    Instantiate(wallHorizontalPrefab, wallHPos, Quaternion.identity, transform);
-                }
+                    // Poziții de pereți pe marginea celulei curente
+                    bool wallRight = (x < width - 1 && mazeGrid[x + 1, y] == 1);
+                    bool wallTop = (y < height - 1 && mazeGrid[x, y + 1] == 1);
 
-                // Pereți margine dreapta
-                if (x == width - 1)
-                {
-                    Vector3 wallVRight = new Vector3((x + 0.5f) * tileSize, -0.25f, y * tileSize);
-                    Instantiate(wallVerticalPrefab, wallVRight, Quaternion.identity, transform);
-                }
+                    // Instanțiere perete vertical între celula curentă și dreapta
+                    if (wallRight)
+                    {
+                        Vector3 wallVPos = new Vector3((x + 0.5f) * tileSize, -0.25f, y * tileSize);
+                        Instantiate(wallVerticalPrefab, wallVPos, Quaternion.identity, transform);
+                    }
 
-                // Pereți margine sus
-                if (y == height - 1)
-                {
-                    Vector3 wallHTop = new Vector3(x * tileSize, -0.25f, (y + 0.5f) * tileSize);
-                    Instantiate(wallHorizontalPrefab, wallHTop, Quaternion.identity, transform);
-                }
-
-                // Pereți margine stânga
-                if (x == 0)
-                {
-                    Vector3 wallVLeft = new Vector3((x - 0.5f) * tileSize, -0.25f, y * tileSize);
-                    Instantiate(wallVerticalPrefab, wallVLeft, Quaternion.identity, transform);
-                }
-
-                // Pereți margine jos
-                if (y == 0)
-                {
-                    Vector3 wallHBottom = new Vector3(x * tileSize, -0.25f, (y - 0.5f) * tileSize);
-                    Instantiate(wallHorizontalPrefab, wallHBottom, Quaternion.identity, transform);
+                    // Instanțiere perete orizontal între celula curentă și sus
+                    if (wallTop)
+                    {
+                        Vector3 wallHPos = new Vector3(x * tileSize, -0.25f, (y + 0.5f) * tileSize);
+                        Instantiate(wallHorizontalPrefab, wallHPos, Quaternion.identity, transform);
+                    }
                 }
             }
         }
+
+        Debug.Log("✅ Vizualizarea labirintului completă.");
     }
 }
