@@ -1,5 +1,16 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+// 🔵 Reprezintă o ramificație spre power-up-uri
+[System.Serializable]
+public class BranchPath
+{
+    public Vector2Int entryPoint; // Punctul de unde intrăm în ramificație
+    public List<Vector2Int> path = new List<Vector2Int>(); // Lista de tile-uri din ramificație
+    public List<Vector2Int> itemPositions = new List<Vector2Int>(); // Pozițiile unde sunt itemele în ramificație
+    public bool alreadyExplored = false;
+}
+
+
 
 public class MazeGenerator : MonoBehaviour
 {
@@ -13,11 +24,36 @@ public class MazeGenerator : MonoBehaviour
     public GameObject labelExitPrefab;
     public GameObject specialPrefab;
     public GameObject powerupPrefab;
+    public GameObject entryPointLabelPrefab;
 
     public float tileSize = 1f;
-
+    private List<Vector2Int> deadEnds = new List<Vector2Int>();
     private int[,] mazeGrid;
     private Vector2Int exitA, exitB;
+    private List<Vector2Int> pathToExit;
+    private List<BranchPath> branchPaths = new List<BranchPath>();
+    public List<Vector2Int> GetPathToExit()
+    {
+        return pathToExit;
+    }
+
+    public List<BranchPath> GetBranchPaths()
+    {
+        return branchPaths;
+    }
+    public List<Vector3> entryPoints
+    {
+        get
+        {
+            List<Vector3> result = new List<Vector3>();
+            foreach (BranchPath b in branchPaths)
+            {
+                Vector3 worldPos = new Vector3(b.entryPoint.x * tileSize, 0f, b.entryPoint.y * tileSize);
+                result.Add(worldPos);
+            }
+            return result;
+        }
+    }
 
     void Start()
     {
@@ -25,6 +61,9 @@ public class MazeGenerator : MonoBehaviour
         GenerateFloor();
         GenerateMazePath();
         FindLongestPathEnds();
+        FindMainPath();
+        IdentifyDeadEnds();
+        FindBranchPaths();
         CutEntrancesFromOutside();
         VisualizeMaze();
         PlaceDebugLabels();
@@ -95,7 +134,50 @@ public class MazeGenerator : MonoBehaviour
 
         Debug.Log("🟢 exitA: " + exitA + "  |  exitB: " + exitB);
     }
+    void FindMainPath()
+    {
+        pathToExit = FindPath(exitA, exitB);
+        Debug.Log("📌 Path to Exit generat cu " + pathToExit.Count + " pași.");
+        List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal)
+        {
+            Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
+            Queue<Vector2Int> queue = new Queue<Vector2Int>();
+            queue.Enqueue(start);
+            cameFrom[start] = start;
 
+            while (queue.Count > 0)
+            {
+                Vector2Int current = queue.Dequeue();
+                if (current == goal)
+                {
+                    break;
+                }
+
+                foreach (var dir in GetCardinalDirections(1))
+                {
+                    Vector2Int neighbor = current + dir;
+                    if (IsInside(neighbor) && mazeGrid[neighbor.x, neighbor.y] == 1 && !cameFrom.ContainsKey(neighbor))
+                    {
+                        queue.Enqueue(neighbor);
+                        cameFrom[neighbor] = current;
+                    }
+                }
+            }
+
+            List<Vector2Int> path = new List<Vector2Int>();
+            Vector2Int temp = goal;
+            while (temp != start)
+            {
+                path.Add(temp);
+                temp = cameFrom[temp];
+            }
+            path.Add(start);
+            path.Reverse();
+
+            return path;
+        }
+
+    }
     void CutEntrancesFromOutside()
     {
         mazeGrid[exitA.x, exitA.y] = 1;
@@ -210,6 +292,154 @@ public class MazeGenerator : MonoBehaviour
 
         Debug.Log("⭐ Powerup-uri plasate pe toate fundăturile.");
     }
+    private void IdentifyDeadEnds()
+    {
+        deadEnds.Clear();
+
+        for (int x = 1; x < width - 1; x++)
+        {
+            for (int y = 1; y < height - 1; y++)
+            {
+                if (mazeGrid[x, y] == 1)
+                {
+                    int openNeighbors = 0;
+                    foreach (var dir in GetCardinalDirections(1))
+                    {
+                        Vector2Int neighbor = new Vector2Int(x + dir.x, y + dir.y);
+                        if (IsInside(neighbor) && mazeGrid[neighbor.x, neighbor.y] == 1)
+                        {
+                            openNeighbors++;
+                        }
+                    }
+
+                    if (openNeighbors == 1)
+                    {
+                        deadEnds.Add(new Vector2Int(x, y));
+                    }
+                }
+            }
+        }
+
+        Debug.Log("🟡 DeadEnds identificate: " + deadEnds.Count);
+    }
+    private List<Vector2Int> GetAvailableNeighbors(Vector2Int cell)
+    {
+        List<Vector2Int> neighbors = new List<Vector2Int>();
+
+        foreach (var dir in GetCardinalDirections(1))
+        {
+            Vector2Int neighbor = cell + dir;
+            if (IsInside(neighbor) && mazeGrid[neighbor.x, neighbor.y] == 1)
+            {
+                neighbors.Add(neighbor);
+            }
+        }
+
+        return neighbors;
+    }
+    private void FindBranchPaths()
+    {
+        branchPaths.Clear();
+
+        foreach (Vector2Int start in deadEnds)
+        {
+            if (IsPartOfMainPath(start))
+                continue;
+
+            BranchPath branch = new BranchPath();
+
+            Vector2Int current = start;
+            Vector2Int previous = new Vector2Int(-1, -1);
+            int safety = 0;
+
+            List<Vector2Int> tempPath = new List<Vector2Int>();
+            tempPath.Add(current);
+
+            while (safety++ < 100)
+            {
+                List<Vector2Int> neighbors = GetAvailableNeighbors(current);
+                neighbors.Remove(previous);
+
+                if (neighbors.Count == 0)
+                    break;
+
+                Vector2Int next = neighbors[0];
+
+                // Verificăm dacă next este în pathToExit → entryPoint detectat!
+                if (pathToExit.Contains(next))
+                {
+                    branch.entryPoint = current; // acesta e tile-ul de la intersecție
+                    break;
+                }
+
+                // Detectăm PowerUp pe tile curent
+                Vector3 worldPos = new Vector3(current.x * tileSize, 0.5f, current.y * tileSize);
+                Collider[] colliders = Physics.OverlapSphere(worldPos, 0.4f);
+                foreach (var col in colliders)
+                {
+                    if (col.CompareTag("PowerUp"))
+                    {
+                        branch.itemPositions.Add(current);
+                        break;
+                    }
+                }
+
+                previous = current;
+                current = next;
+                tempPath.Add(current);
+            }
+
+            branch.path = tempPath;
+
+            if (branch.path.Count > 1 && branch.entryPoint != Vector2Int.zero)
+            {
+                // 🔒 Verificare suplimentară: entryPoint trebuie să aibă un vecin real în pathToExit
+                bool hasValidNeighbor = false;
+                List<Vector2Int> epNeighbors = new List<Vector2Int>
+    {
+        new Vector2Int(branch.entryPoint.x + 1, branch.entryPoint.y),
+        new Vector2Int(branch.entryPoint.x - 1, branch.entryPoint.y),
+        new Vector2Int(branch.entryPoint.x, branch.entryPoint.y + 1),
+        new Vector2Int(branch.entryPoint.x, branch.entryPoint.y - 1)
+    };
+
+                foreach (var n in epNeighbors)
+                {
+                    if (pathToExit.Contains(n))
+                    {
+                        hasValidNeighbor = true;
+                        break;
+                    }
+                }
+
+                if (!hasValidNeighbor)
+                {
+                    Debug.LogWarning($"⚠️ Ramificație ignorată: entryPoint {branch.entryPoint} NU are vecini în pathToExit!");
+                    continue;
+                }
+
+                branchPaths.Add(branch);
+
+                // 🔵 Etichetă vizuală pe entryPoint (dacă e activată)
+                if (entryPointLabelPrefab != null)
+                {
+                    Vector3 labelPos = new Vector3(branch.entryPoint.x * tileSize, 0.6f, branch.entryPoint.y * tileSize);
+                    GameObject label = Instantiate(entryPointLabelPrefab, labelPos, Quaternion.identity, transform);
+
+                    TextMesh text = label.GetComponent<TextMesh>();
+                    if (text != null)
+                    {
+                        text.text = $"EP {branchPaths.Count - 1}";
+                        text.characterSize = 0.2f;
+                        text.color = Color.yellow;
+                    }
+                }
+            }
+        }
+
+            Debug.Log("🌟 Ramificații detectate corect: " + branchPaths.Count);
+    }
+
 
     Vector2Int BFSFarthest(Vector2Int start)
     {
@@ -268,6 +498,17 @@ public class MazeGenerator : MonoBehaviour
     }
     public Vector3 GetStartWorldPosition()
     {
-        return new Vector3(exitA.x * tileSize, 0.5f, exitA.y * tileSize);
+        Vector3 pos = new Vector3(exitA.x * tileSize, 0.5f, exitA.y * tileSize);
+        Debug.Log("📍 Pozitie START calculata pentru Hero: " + pos);
+        return pos;
+    }
+    public Vector3 GetExitWorldPosition()
+    {
+        return new Vector3(exitB.x * tileSize, 0.5f, exitB.y * tileSize);
+    }
+    private bool IsPartOfMainPath(Vector2Int cell)
+
+    {
+        return pathToExit != null && pathToExit.Contains(cell);
     }
 }

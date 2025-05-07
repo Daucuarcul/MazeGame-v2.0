@@ -4,28 +4,52 @@ using System.Collections;
 public class HeroSpawner : MonoBehaviour
 {
     public GameObject heroPrefab;
-    public FixedJoystick joystick;
     public MazeGenerator mazeGenerator;
 
     private void Start()
     {
+        Debug.Log("🧩 HeroSpawner: Start() a fost apelat.");
         StartCoroutine(SpawnHeroAfterMaze());
     }
 
     IEnumerator SpawnHeroAfterMaze()
     {
-        // Așteptăm 1 frame ca MazeGenerator să termine Start()
-        yield return null;
+        // Așteptăm până când MazeGenerator a generat ramificațiile
+        yield return new WaitForSeconds(0.1f);
+        Debug.Log("✅ Am trecut de yield, urmează instanțierea Hero.");
+
+
+
+
+        // Adăugăm o mică întârziere pentru siguranță
+        yield return new WaitForSeconds(0.1f);
 
         Vector3 startPosition = mazeGenerator.GetStartWorldPosition();
         Debug.Log("🚀 Hero va fi instanțiat la: " + startPosition);
 
         GameObject hero = Instantiate(heroPrefab, startPosition, Quaternion.identity);
+        hero.SetActive(false); // 🔴 oprim temporar
 
         HeroMovement movement = hero.GetComponent<HeroMovement>();
         if (movement != null)
         {
-            movement.joystick = joystick;
+            var branches = mazeGenerator.GetBranchPaths();
+            Debug.Log("🧪 Verificare finală: transmit " + branches.Count + " ramificații către Hero.");
+
+            movement.SetPathToExit(mazeGenerator.GetPathToExit());
+            movement.SetBranchPaths(branches);
+
+            Debug.Log("🧪 HeroMovement intern are " + movement.Debug_GetBranchCount() + " ramificații după setare.");
         }
+
+        // ✅ Legăm Hero-ul la butonul PowerUp din scenă
+        var buttonHandler = FindObjectOfType<PowerUpButtonHandler>();
+        if (buttonHandler != null)
+        {
+            buttonHandler.hero = hero.GetComponent<HeroMovement>();
+            Debug.Log("✅ Hero setat în PowerUpButtonHandler: " + buttonHandler.hero.name);
+        }
+
+        hero.SetActive(true); // ✅ abia acum îl pornim
     }
 }
