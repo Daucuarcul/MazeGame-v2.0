@@ -15,7 +15,8 @@ public class HeroMovement : MonoBehaviour
 
     private List<Vector2Int> currentBranchPath = new List<Vector2Int>();
     private int branchStepIndex = 0;
-    private Vector2Int returnPoint = new Vector2Int(-1, -1);
+    private Queue<Vector2Int> pathToExplore;   // drumul pe care merge Hero în ramură
+    private Vector2Int returnPoint = new Vector2Int(-1, -1);  // tile-ul unde se va întoarce după ce adună PowerUp
 
     private BranchPath activeBranch;
 
@@ -37,17 +38,42 @@ public class HeroMovement : MonoBehaviour
     }
 
     private void FixedUpdate()
+
     {
-        if (isExploringBranch)
+        Debug.Log($"🧪 Check: isExploringBranch = {isExploringBranch}, pathToExplore.Count = {pathToExplore?.Count}");
+
+        if (isExploringBranch && pathToExplore != null && pathToExplore.Count > 0)
         {
-            FollowBranchPath();
+            Debug.Log($"🧭 Hero explorează: urmează tile-ul {pathToExplore.Peek()} | ramură activă: {activeBranch.entryPoint}");
+
+            Vector2Int nextTile = pathToExplore.Peek();
+            Vector3 targetPos = new Vector3(nextTile.x, transform.position.y, nextTile.y);
+
+            float step = speed * Time.fixedDeltaTime;
+
+            transform.position = Vector3.MoveTowards(transform.position, targetPos, step);
+
+            if (Vector3.Distance(transform.position, targetPos) < 0.05f)
+            {
+                pathToExplore.Dequeue();
+
+                if (pathToExplore.Count == 0)
+                {
+                    Debug.Log("✅ Hero a ajuns la finalul ramurii.");
+                    // Vom adăuga întoarcerea în pasul următor
+                }
+            }
+
+            return; // blocăm orice altă mișcare cât timp mergem în ramură
         }
-        else
+
+        if (!isExploringBranch)
         {
             FollowMainPath();
             CheckForNearbyEntryPoints();
         }
     }
+
 
     void FollowMainPath()
     {
@@ -124,7 +150,8 @@ public class HeroMovement : MonoBehaviour
         {
             Quaternion toRotation = Quaternion.LookRotation(direction, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, 10 * Time.fixedDeltaTime);
-            transform.position += transform.forward * speed * Time.fixedDeltaTime;
+            transform.position = Vector3.MoveTowards(transform.position, targetWorldPos, speed * Time.fixedDeltaTime);
+
         }
     }
 
@@ -146,7 +173,6 @@ public class HeroMovement : MonoBehaviour
             if (heroGridPos == activeBranch.entryPoint)
             {
                 Debug.Log("✅ Hero a trecut de entryPoint. Stingem butonul și marcăm ramura.");
-                UIManager.Instance.SetPowerUpButtonActive(false);
                 activeBranch.alreadyExplored = true;
                 isExploringBranch = false;
             }
@@ -198,7 +224,6 @@ public class HeroMovement : MonoBehaviour
                 {
                     if (pathToExit[checkIndex] == heroGridPos)
                     {
-                        UIManager.Instance.SetPowerUpButtonActive(true);
                         Debug.Log($"✅ HERO detectat în fereastra logică pentru ramura EP: {entry}");
                         return;
                     }
@@ -206,47 +231,50 @@ public class HeroMovement : MonoBehaviour
             }
         }
 
-        UIManager.Instance.SetPowerUpButtonActive(false);
     }
 
 
 
 
     public void ExploreNearestBranch()
-{
-    if (isExploringBranch || branchPaths == null || branchPaths.Count == 0)
-        return;
-
-    Vector2Int heroPos = new Vector2Int(
-        Mathf.RoundToInt(transform.position.x),
-        Mathf.RoundToInt(transform.position.z)
-    );
-
-    BranchPath closest = null;
-    float closestDistance = float.MaxValue;
-
-    foreach (BranchPath branch in branchPaths)
     {
-        if (branch.alreadyExplored)
-            continue;
+        if (isExploringBranch || branchPaths == null || branchPaths.Count == 0)
+            return;
 
-        float dist = Vector2.Distance(heroPos, branch.entryPoint);
-        if (dist < closestDistance)
+        Vector2Int heroPos = new Vector2Int(
+            Mathf.RoundToInt(transform.position.x),
+            Mathf.RoundToInt(transform.position.z)
+        );
+
+        BranchPath closest = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (BranchPath branch in branchPaths)
         {
-            closest = branch;
-            closestDistance = dist;
+            if (branch.alreadyExplored)
+                continue;
+
+            float dist = Vector2.Distance(heroPos, branch.entryPoint);
+            if (dist < closestDistance)
+            {
+                closest = branch;
+                closestDistance = dist;
+            }
+        }
+
+        if (closest != null && closest.path.Count > 0)
+        {
+            pathToExplore = new Queue<Vector2Int>(closest.path);
+            returnPoint = closest.entryPoint;
+            activeBranch = closest;
+
+            isExploringBranch = true;
+            returningFromBranch = false;
+
+            Debug.Log($"🚶‍♂️ Hero începe explorarea ramurii de la {closest.entryPoint} cu {closest.path.Count} tile-uri.");
+            Debug.Log($"👣 pathToExplore setat: {pathToExplore.Count} tile-uri | isExploringBranch = {isExploringBranch}");
+
         }
     }
 
-    if (closest != null && closest.path.Count > 0)
-    {
-        currentBranchPath = new List<Vector2Int>(closest.path);
-        branchStepIndex = 0;
-        returnPoint = closest.entryPoint;
-        activeBranch = closest;
-
-        isExploringBranch = true;
-        returningFromBranch = false;
-    }
-}
 }

@@ -42,13 +42,7 @@ public class HeroSpawner : MonoBehaviour
             Debug.Log("🧪 HeroMovement intern are " + movement.Debug_GetBranchCount() + " ramificații după setare.");
         }
 
-        // ✅ Legăm Hero-ul la butonul PowerUp din scenă
-        var buttonHandler = FindObjectOfType<PowerUpButtonHandler>();
-        if (buttonHandler != null)
-        {
-            buttonHandler.hero = hero.GetComponent<HeroMovement>();
-            Debug.Log("✅ Hero setat în PowerUpButtonHandler: " + buttonHandler.hero.name);
-        }
+       
 
         hero.SetActive(true); // ✅ abia acum îl pornim
     }
