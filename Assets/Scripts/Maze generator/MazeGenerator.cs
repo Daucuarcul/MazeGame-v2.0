@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Palmmedia.ReportGenerator.Core.Parser.Analysis;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 // 🔵 Reprezintă o ramificație spre power-up-uri
@@ -9,12 +10,15 @@ public class BranchPath
     public List<Vector2Int> path = new List<Vector2Int>(); // Lista de tile-uri din ramificație
     public List<Vector2Int> itemPositions = new List<Vector2Int>(); // Pozițiile unde sunt itemele în ramificație
     public bool alreadyExplored = false;
+    public List<Vector2Int> fullBranchPath = new List<Vector2Int>();
+    public int indexOnPath = -1;
 }
 
 
 
 public class MazeGenerator : MonoBehaviour
 {
+
     public int width = 21;
     public int height = 21;
 
@@ -346,7 +350,7 @@ public class MazeGenerator : MonoBehaviour
         branchPaths.Clear();
         int id = 0;
         HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
-
+        HashSet<Vector2Int> alreadyAssignedPowerUps = new HashSet<Vector2Int>();
         foreach (Vector2Int start in deadEnds)
         {
             if (visited.Contains(start))
@@ -389,95 +393,126 @@ public class MazeGenerator : MonoBehaviour
                 Debug.LogWarning($"⚠️ Ramură de la {start} ignorată — fără conectare la pathToExit.");
                 continue;
             }
+            if (entryPoint == exitB)
+            {
+                Debug.LogWarning($"⛔ Ramura de la {entryPoint} ignorată — este chiar exitB.");
+                continue;
+            }
 
             BranchPath branch = new BranchPath();
-            branch.path = new List<Vector2Int>(branchArea);
-            branch.entryPoint = entryPoint;
+            List<Vector2Int> combinedPath = new List<Vector2Int>();
+            Vector2Int currentPos = entryPoint;
+            HashSet<Vector2Int> visitedBranchTiles = new HashSet<Vector2Int>();
 
-            // Detectăm PowerUps cu metodă robustă
-            foreach (var pos in branch.path)
+            // Detectăm PowerUps în branchArea
+            List<Vector2Int> foundPowerUps = new List<Vector2Int>();
+
+            foreach (Vector2Int pos in branchArea)
             {
                 if (DetectPowerUpAt(pos))
                 {
-                    branch.itemPositions.Add(pos);
-                    Debug.Log($"💎 PowerUp detectat la {pos} pentru ramura EP {branch.entryPoint}");
-                }
-            }
-
-            if (branch.itemPositions.Count > 0)
-            {
-                branchPaths.Add(branch);
-                Debug.Log($"🌱 Ramificație validă #{id} de la {branch.entryPoint} (len: {branch.path.Count})");
-
-                // Etichetă vizuală EP
-                if (entryPointLabelPrefab != null)
-                {
-                    Vector3 labelPos = new Vector3(branch.entryPoint.x * tileSize, 0.6f, branch.entryPoint.y * tileSize);
-                    GameObject label = Instantiate(entryPointLabelPrefab, labelPos, Quaternion.identity, transform);
-
-                    TextMesh text = label.GetComponent<TextMesh>();
-                    if (text != null)
+                    if (!alreadyAssignedPowerUps.Contains(pos))
                     {
-                        text.text = $"EP {id}";
-                        text.characterSize = 0.2f;
-                        text.color = Color.yellow;
+                        foundPowerUps.Add(pos);
+                        alreadyAssignedPowerUps.Add(pos);
+                        Debug.Log($"💎 PowerUp detectat la {pos} pentru ramura EP {entryPoint}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"⚠️ PowerUp de la {pos} a fost deja atribuit altei ramuri. Ignorat aici.");
                     }
                 }
+            }
 
-                id++;
-            }
-            else
+            if (foundPowerUps.Count == 0)
             {
-                Debug.LogWarning($"❌ Ramură fără PowerUps de la {start}");
+                Debug.LogWarning($"❌ Ramura de la {entryPoint} ignorată — nu are PowerUp-uri.");
+                continue;
             }
+
+            // Construim path complet: entry → fiecare PowerUp → înapoi
+            List<Vector2Int> sortedItems = SortPowerUpsByPath(entryPoint, foundPowerUps, branchArea);
+
+            foreach (Vector2Int itemPos in sortedItems)
+            {
+                List<Vector2Int> toItem = FindPathInBranch(currentPos, itemPos, branchArea);
+                combinedPath.AddRange(toItem);
+                currentPos = itemPos;
+            }
+
+
+            // întoarcere la entryPoint
+            List<Vector2Int> returnPath = FindPathInBranch(currentPos, entryPoint, branchArea);
+            combinedPath.AddRange(returnPath);
+
+            // Finalizare ramură
+            branch.entryPoint = entryPoint;
+            branch.path = combinedPath;
+            branch.itemPositions = foundPowerUps;
+            // ⬇️ Completăm fullBranchPath
+            branch.fullBranchPath = new List<Vector2Int>(combinedPath);
+            branchPaths.Add(branch);
+
+            // Etichetă vizuală EP
+            if (entryPointLabelPrefab != null)
+            {
+                Vector3 labelPos = new Vector3(entryPoint.x * tileSize, 0.6f, entryPoint.y * tileSize);
+                GameObject label = Instantiate(entryPointLabelPrefab, labelPos, Quaternion.identity, transform);
+
+                TextMesh text = label.GetComponent<TextMesh>();
+                if (text != null)
+                {
+                    text.text = $"EP {id}";
+                    text.characterSize = 0.2f;
+                    text.color = Color.yellow;
+                }
+            }
+
+            Debug.Log($"🌱 Ramificație validă #{id} de la {entryPoint} cu {foundPowerUps.Count} PowerUps (len: {branch.path.Count})");
+            id++;
         }
 
         Debug.Log("🌟 Total ramuri detectate: " + branchPaths.Count);
     }
 
-    private bool DetectPowerUpAt(Vector2Int pos)
+    private List<Vector2Int> SortPowerUpsByPath(Vector2Int entryPoint, List<Vector2Int> powerUps, HashSet<Vector2Int> validArea)
     {
-        Vector3 worldPos = new Vector3(pos.x * tileSize, 0.5f, pos.y * tileSize);
+        List<Vector2Int> result = new List<Vector2Int>();
+        Vector2Int current = entryPoint;
+        List<Vector2Int> remaining = new List<Vector2Int>(powerUps);
 
-        // 1. OverlapSphere cu rază mai mare
-        Collider[] sphereHits = Physics.OverlapSphere(worldPos, 0.6f);
-        foreach (var col in sphereHits)
+        while (remaining.Count > 0)
         {
-            if (col.CompareTag("PowerUp"))
-                return true;
+            Vector2Int closest = remaining
+                .OrderBy(p => FindPathInBranch(current, p, validArea).Count)
+                .First();
+
+            result.Add(closest);
+            remaining.Remove(closest);
+            current = closest;
         }
 
-        // 2. OverlapBox pe volum 3D
-        Collider[] boxHits = Physics.OverlapBox(worldPos, new Vector3(0.6f, 1f, 0.6f));
-        foreach (var col in boxHits)
-        {
-            if (col.CompareTag("PowerUp"))
-                return true;
-        }
-
-        // 3. Raycast în jos din aer
-        RaycastHit hit;
-        if (Physics.Raycast(worldPos + Vector3.up * 2f, Vector3.down, out hit, 5f))
-        {
-            if (hit.collider.CompareTag("PowerUp"))
-                return true;
-        }
-
-        // 4. Căutare globală ca fallback
-        GameObject[] allPowerUps = GameObject.FindGameObjectsWithTag("PowerUp");
-        foreach (GameObject powerUp in allPowerUps)
-        {
-            Vector3 p = powerUp.transform.position;
-            Vector2Int gridPos = new Vector2Int(
-                Mathf.RoundToInt(p.x / tileSize),
-                Mathf.RoundToInt(p.z / tileSize)
-            );
-            if (gridPos == pos)
-                return true;
-        }
-
-        return false;
+        return result;
     }
+
+
+    private bool DetectPowerUpAt(Vector2Int pos)
+{
+    GameObject[] allPowerUps = GameObject.FindGameObjectsWithTag("PowerUp");
+    foreach (GameObject powerUp in allPowerUps)
+    {
+        Vector3 p = powerUp.transform.position;
+        Vector2Int gridPos = new Vector2Int(
+            Mathf.RoundToInt(p.x / tileSize),
+            Mathf.RoundToInt(p.z / tileSize)
+        );
+        if (gridPos == pos)
+            return true;
+    }
+
+    return false;
+}
+
 
 
     Vector2Int BFSFarthest(Vector2Int start)
@@ -545,6 +580,49 @@ public class MazeGenerator : MonoBehaviour
     {
         return new Vector3(exitB.x * tileSize, 0.5f, exitB.y * tileSize);
     }
+    // Găsește drumul pas cu pas între două tile-uri din branchArea
+    private List<Vector2Int> FindPathInBranch(Vector2Int from, Vector2Int to, HashSet<Vector2Int> validArea)
+    {
+        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        cameFrom[from] = from;
+        queue.Enqueue(from);
+
+        while (queue.Count > 0)
+        {
+            Vector2Int current = queue.Dequeue();
+
+            if (current == to)
+                break;
+
+            foreach (var dir in GetCardinalDirections(1))
+            {
+                Vector2Int neighbor = current + dir;
+
+                if (validArea.Contains(neighbor) && !cameFrom.ContainsKey(neighbor))
+                {
+                    cameFrom[neighbor] = current;
+                    queue.Enqueue(neighbor);
+                }
+            }
+        }
+
+        List<Vector2Int> path = new List<Vector2Int>();
+        Vector2Int step = to;
+
+        if (!cameFrom.ContainsKey(to))
+            return path; // returnează gol dacă nu s-a găsit drum
+
+        while (step != from)
+        {
+            path.Add(step);
+            step = cameFrom[step];
+        }
+        path.Add(from);
+        path.Reverse();
+        return path;
+    }
+
     private bool IsPartOfMainPath(Vector2Int cell)
 
     {

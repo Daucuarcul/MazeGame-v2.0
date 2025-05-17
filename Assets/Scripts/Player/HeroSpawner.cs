@@ -38,7 +38,7 @@ public class HeroSpawner : MonoBehaviour
 
             movement.SetPathToExit(mazeGenerator.GetPathToExit());
             movement.SetBranchPaths(branches);
-
+            movement.AssignBranchIndicesByPath();
             Debug.Log("🧪 HeroMovement intern are " + movement.Debug_GetBranchCount() + " ramificații după setare.");
         }
 
